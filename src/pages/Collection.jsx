@@ -17,15 +17,15 @@ export const Collection = () => {
     const items = useSelector(collectionItems)
     const collections = useSelector(myCollections)
     const selectedCollection = collections.find(collection => collection.id.toString() === id);
-    console.log(collections, '5')
+    console.log(selectedCollection, '5')
 
     const [selectedItem, setSelectedItem] = useState(null);
     const initialValues = selectedItem || {};
 
     const { 
       register, 
-      handleSubmit,
-      watch,
+      handleSubmit, 
+      reset,
       setValue,
       formState: { errors } 
     } = useForm({
@@ -54,7 +54,7 @@ export const Collection = () => {
 
     useEffect(() => {      
         dispatch(fetchCollectionItems(selectedCollection.id))       
-               
+        setValue('collection_id', selectedCollection.id);
     }, []);
 
     useEffect(() => {
@@ -68,21 +68,54 @@ export const Collection = () => {
     const handleCloseModal = () => {
       setShowModalItem(false);
       setSelectedItem(null);
+      reset()
+      setValue('collection_id', selectedCollection.id);
     };
 
     const handleShowModal = (item = null) => {
-      setSelectedItem(item);
       setShowModalItem(true);
+      if (item) {
+        const tagsAsString = item.tags.join(', ');
+        const newItem = { ...item, tags: tagsAsString };
+        setSelectedItem(newItem);
+        
+        console.log(newItem);
+      } else {
+        setSelectedItem(null); 
+      }
     };
+    
 
     const handleCreateCollection = (data) => {
-        console.log(data)
-        axios.post('/api/item/create', data);
-        dispatch(fetchCollectionItems(data.collection_id)) 
-        setShowModalItem(false);
+      const transformedData = {
+        ...data,
+        custom_int1: parseInt(data.custom_int1),
+        custom_int2: parseInt(data.custom_int2),
+        custom_int3: parseInt(data.custom_int3),
+        custom_boolean1: Boolean(data.custom_boolean1),
+        custom_boolean2: Boolean(data.custom_boolean2),
+        custom_boolean3: Boolean(data.custom_boolean3),
+        custom_date1: data.custom_date1 ? new Date(data.custom_date1) : null,
+        custom_date2: data.custom_date2 ? new Date(data.custom_date2) : null,
+        custom_date3: data.custom_date3 ? new Date(data.custom_date3) : null,
+    };
+
+    console.log(transformedData, '1');
+    
+    axios.post('/api/item/create', transformedData)
+         .then(() => {
+            dispatch(fetchCollectionItems(transformedData.collection_id)); 
+            setShowModalItem(false);
+            reset()
+            setValue('collection_id', selectedCollection.id);
+         })
+         .catch((error) => {
+             console.error('Failed to create item:', error);
+         });
     };
 
     const handleEditCollection = (data) => {
+      console.log(data)
       const itemId = selectedItem.id;
       const collectionId = selectedItem.collection_id;
       axios.patch(`/api/item/update/${itemId}`, data);
@@ -107,6 +140,10 @@ export const Collection = () => {
               size="sm"
               onClick={() => handleShowModal()}>Add new Item</Button>
           </Col>
+        </Row>
+        <Row>
+          
+          {selectedCollection && <p>{selectedCollection.description}</p>}            
         </Row>
         <Modal show={showModalItem} onHide={handleCloseModal}>
                 <Modal.Header closeButton>

@@ -12,7 +12,6 @@ export const User = () => {
     const dispatch = useDispatch();
     const [showModal, setShowModal] = useState(false);
     const collections = useSelector(myCollections)
-    console.log(collections)
     
     const [selectedCollection, setSelectedCollection] = useState(null);
     const initialValues = selectedCollection || {};
@@ -21,7 +20,8 @@ export const User = () => {
       register, 
       handleSubmit,
       watch,
-      setValue 
+      setValue,
+      reset
     } = useForm({
       defaultValues: {
         user_id: initialValues.user_id || '',
@@ -65,7 +65,7 @@ export const User = () => {
 
     useEffect(() => {
       const token = localStorage.getItem('token');
-      if (token) {
+      if (token) { 
         const decodedToken = jwtDecode(token);
         setValue('user_id', decodedToken.id);
         dispatch(fetchMyCollections(decodedToken.id))        
@@ -83,6 +83,10 @@ export const User = () => {
     const handleCloseModal = () => {
       setShowModal(false);
       setSelectedCollection(null);
+      reset()
+      const token = localStorage.getItem('token');
+      const decodedToken = jwtDecode(token);
+      setValue('user_id', decodedToken.id);
     };
 
     const handleShowModal = (collection = null) => {
@@ -96,6 +100,7 @@ export const User = () => {
         axios.post('/api/collection/create', data);
         dispatch(fetchMyCollections(data.user_id)) 
         setShowModal(false);
+        setSelectedCollection(null)
     };
 
     const handleEditCollection = (data) => {
@@ -104,6 +109,8 @@ export const User = () => {
       axios.patch(`/api/collection/update/${collectionId}`, data);
       dispatch(fetchMyCollections(userId)) 
       setShowModal(false);
+      setSelectedCollection(null)
+      
     };    
 
     const handleDeleteCollection = (data) => {
